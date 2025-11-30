@@ -14,6 +14,7 @@ import {
   ListItemIcon,
   ListItemText,
   Container,
+  Button,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -24,6 +25,7 @@ import {
   Event as EventIcon,
   Payment as PaymentIcon,
   Assessment as ReportIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -51,6 +53,11 @@ export default function Layout({ children }: LayoutProps) {
     setMobileOpen(!mobileOpen);
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem('isAuthenticated');
+    navigate('/login');
+  };
+
   const drawer = (
     <div>
       <Toolbar>
@@ -75,6 +82,17 @@ export default function Layout({ children }: LayoutProps) {
           </ListItem>
         ))}
       </List>
+      <Divider />
+      <List>
+        <ListItem disablePadding>
+          <ListItemButton onClick={handleLogout}>
+            <ListItemIcon>
+              <LogoutIcon />
+            </ListItemIcon>
+            <ListItemText primary="로그아웃" />
+          </ListItemButton>
+        </ListItem>
+      </List>
     </div>
   );
 
@@ -97,9 +115,17 @@ export default function Layout({ children }: LayoutProps) {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             ROS2 기반 스마트 주차장 시스템
           </Typography>
+          <Button
+            color="inherit"
+            startIcon={<LogoutIcon />}
+            onClick={handleLogout}
+            sx={{ display: { xs: 'none', sm: 'flex' } }}
+          >
+            로그아웃
+          </Button>
         </Toolbar>
       </AppBar>
       <Box

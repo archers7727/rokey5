@@ -36,35 +36,35 @@ INSERT INTO payment_methods (customer_id, payment_type, card_last4, card_type, d
 ('550e8400-e29b-41d4-a716-446655440005', 'card', '9012', 'AMEX', '우리카드', true);
 
 -- =====================================================
--- 4. 주차 공간 데이터 (100개)
+-- 4. 주차 공간 데이터 (24개: A-01~08, B-01~08, C-01~08)
 -- =====================================================
 
--- A구역 (1~30)
+-- A구역 (01~08)
 INSERT INTO parking_current_status (spot_id, is_occupied, zone, floor)
 SELECT
     'A-' || LPAD(num::TEXT, 2, '0'),
     CASE WHEN num % 3 = 0 THEN true ELSE false END,
     'A',
     '1F'
-FROM generate_series(1, 30) AS num;
+FROM generate_series(1, 8) AS num;
 
--- B구역 (1~30)
+-- B구역 (01~08)
 INSERT INTO parking_current_status (spot_id, is_occupied, zone, floor)
 SELECT
     'B-' || LPAD(num::TEXT, 2, '0'),
-    CASE WHEN num % 4 = 0 THEN true ELSE false END,
+    CASE WHEN num % 3 = 0 THEN true ELSE false END,
     'B',
     '1F'
-FROM generate_series(1, 30) AS num;
+FROM generate_series(1, 8) AS num;
 
--- C구역 (1~40)
+-- C구역 (01~08)
 INSERT INTO parking_current_status (spot_id, is_occupied, zone, floor)
 SELECT
     'C-' || LPAD(num::TEXT, 2, '0'),
-    CASE WHEN num % 5 = 0 THEN true ELSE false END,
+    CASE WHEN num % 3 = 0 THEN true ELSE false END,
     'C',
-    '2F'
-FROM generate_series(1, 40) AS num;
+    '1F'
+FROM generate_series(1, 8) AS num;
 
 -- =====================================================
 -- 5. 입출차 이벤트 (최근 20건)
