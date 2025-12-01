@@ -211,18 +211,48 @@ export class ParkingService {
         }
       }
 
-      // 7. ROS2 명령 전송 (출구 게이트 열기)
+      // 7. 출차 타입 결정 (single vs double)
+      let exitCommandType = 'single'; // 기본값
+
+      if (session.parking_spot_id) {
+        // X_n_1 패턴 확인 (예: A_1_1, B_2_1)
+        const isFirstSpot = /^[A-Z]_\d+_1$/.test(session.parking_spot_id);
+
+        if (isFirstSpot) {
+          // preparation spot_id 추출 (A_1_1 → A_1)
+          const preparationSpotId = session.parking_spot_id.replace(/_1$/, '');
+
+          // preparation 상태 확인
+          const { data: prepSpot } = await supabase
+            .from('parking_current_status')
+            .select('is_occupied')
+            .eq('spot_id', preparationSpotId)
+            .eq('location_type', 'preparation')
+            .single();
+
+          // preparation이 occupied면 double (양쪽 다 차있음)
+          if (prepSpot && prepSpot.is_occupied) {
+            exitCommandType = 'double';
+          }
+        }
+        // X_n_2 패턴은 항상 single (기본값)
+      }
+
+      console.log(`출차 타입: ${exitCommandType} (주차위치: ${session.parking_spot_id})`);
+
+      // 8. ROS2 명령 전송 (출구 게이트 열기)
       const { error: commandError } = await supabase
         .from('ros2_commands')
         .insert({
-          command_type: 'EXIT_GATE_OPEN',
+          command_type: exitCommandType === 'double' ? 'EXIT_GATE_DOUBLE' : 'EXIT_GATE_SINGLE',
           session_id,
           license_plate: session.license_plate,
           parking_spot_id: session.parking_spot_id,
           payload: {
             gate_id: 'EXIT-01',
             action: 'open_gate',
-            duration_seconds: 10,
+            exit_type: exitCommandType,
+            duration_seconds: exitCommandType === 'double' ? 20 : 10, // double은 2배 시간
             total_fee: fee.total_fee,
           },
           status: 'pending',
