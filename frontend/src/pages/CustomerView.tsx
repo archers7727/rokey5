@@ -23,7 +23,7 @@ import {
   ExitToApp,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import { supabase } from '../services/supabase';
+import { api } from '../services/api';
 import type { ParkingSession, Vehicle } from '../types/database.types';
 
 interface CustomerSession extends ParkingSession {
@@ -62,25 +62,18 @@ export default function CustomerView() {
   }, [session]);
 
   const fetchParkingSession = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('parking_sessions')
-        .select(`
-          *,
-          vehicles (*)
-        `)
-        .eq('customer_id', customerId)
-        .eq('status', 'parked')
-        .limit(1)
-        .single();
+    if (!customerId) return;
 
-      if (error) {
-        console.error('세션 조회 오류:', error);
-        setSession(null);
+    try {
+      const response = await api.getCustomerSession(customerId);
+
+      if (response.success && response.data) {
+        setSession(response.data);
+        updateParkingTimeAndFee(response.data);
       } else {
-        setSession(data);
-        if (data) {
-          updateParkingTimeAndFee(data);
+        setSession(null);
+        if (response.error) {
+          console.error('세션 조회 오류:', response.error);
         }
       }
     } catch (error) {
@@ -154,93 +147,19 @@ export default function CustomerView() {
         entry_time: session.entry_time,
       });
 
-      // 1. 출차 이벤트 생성
-      const { data: eventData, error: eventError } = await supabase.from('parking_events').insert({
-        license_plate: session.license_plate,
-        event_type: 'exit',
-        gate_id: 'CUSTOMER-APP',
-        is_registered: true,
-      }).select();
+      // Backend API로 출차 처리
+      const response = await api.processExit(session.session_id, 'CUSTOMER-APP');
 
-      if (eventError) {
-        console.error('❌ 출차 이벤트 생성 실패:', eventError);
-        throw eventError;
-      }
-      console.log('✅ 출차 이벤트 생성 완료:', eventData);
-
-      // 2. 세션 종료
-      const { data: sessionData, error: sessionError } = await supabase.from('parking_sessions').update({
-        exit_time: new Date().toISOString(),
-        status: 'exited',
-      }).eq('session_id', session.session_id).select();
-
-      if (sessionError) {
-        console.error('❌ 세션 업데이트 실패:', sessionError);
-        throw sessionError;
-      }
-      console.log('✅ 세션 업데이트 완료:', sessionData);
-
-      // 3. 요금 계산
-      const { data: feeData, error: feeError } = await supabase.rpc('calculate_parking_fee', {
-        p_entry_time: session.entry_time,
-        p_exit_time: new Date().toISOString(),
-      });
-
-      if (feeError) {
-        console.error('❌ 요금 계산 실패:', feeError);
-        throw feeError;
-      }
-      console.log('✅ 요금 계산 완료:', feeData);
-
-      if (feeData && feeData[0]) {
-        const fee = feeData[0];
-
-        // 4. 요금 기록
-        const { data: feeRecordData, error: feeRecordError } = await supabase.from('parking_fees').insert({
-          session_id: session.session_id,
-          base_fee: fee.base_fee,
-          additional_fee: fee.additional_fee,
-          total_fee: fee.total_fee,
-          payment_status: 'unpaid',
-        }).select();
-
-        if (feeRecordError) {
-          console.error('❌ 요금 기록 실패:', feeRecordError);
-          throw feeRecordError;
-        }
-        console.log('✅ 요금 기록 완료:', feeRecordData);
+      if (!response.success) {
+        console.error('❌ 출차 처리 실패:', response.error);
+        alert(response.error || '출차 처리 중 오류가 발생했습니다.');
+        return;
       }
 
-      // 5. 주차 공간 비우기
-      if (session.parking_spot_id) {
-        console.log('주차 공간 비우기 시도:', session.parking_spot_id);
+      console.log('✅ 출차 처리 완료:', response.data);
 
-        // 먼저 해당 spot이 존재하는지 확인
-        const { data: spotCheck, error: spotCheckError } = await supabase
-          .from('parking_current_status')
-          .select('*')
-          .eq('spot_id', session.parking_spot_id);
-
-        console.log('주차 공간 존재 확인:', spotCheck);
-
-        if (!spotCheck || spotCheck.length === 0) {
-          console.error('❌ 주차 공간을 찾을 수 없음:', session.parking_spot_id);
-          console.error('parking_sessions의 parking_spot_id와 parking_current_status의 spot_id가 일치하지 않습니다!');
-        } else {
-          const { data: statusData, error: statusError } = await supabase.from('parking_current_status').update({
-            is_occupied: false,
-          }).eq('spot_id', session.parking_spot_id).select();
-
-          if (statusError) {
-            console.error('❌ 주차 공간 업데이트 실패:', statusError);
-            throw statusError;
-          }
-          console.log('✅ 주차 공간 업데이트 완료:', statusData);
-        }
-      }
-
-      console.log('=== 출차 프로세스 완료 ===');
-      alert(`출차가 완료되었습니다.\n주차 요금: ₩${estimatedFee.toLocaleString()}`);
+      const fee = response.data?.fee?.total_fee || estimatedFee;
+      alert(`출차가 완료되었습니다.\n주차 요금: ₩${fee.toLocaleString()}`);
       setSession(null);
     } catch (error) {
       console.error('출차 오류:', error);
