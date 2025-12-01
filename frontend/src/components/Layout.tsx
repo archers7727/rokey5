@@ -26,6 +26,7 @@ import {
   Payment as PaymentIcon,
   Assessment as ReportIcon,
   Logout as LogoutIcon,
+  Science as TestIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -42,6 +43,7 @@ const menuItems = [
   { text: '입출차 이벤트', icon: <EventIcon />, path: '/events' },
   { text: '결제 관리', icon: <PaymentIcon />, path: '/payments' },
   { text: '통계 및 리포트', icon: <ReportIcon />, path: '/reports' },
+  { text: '🧪 테스트', icon: <TestIcon />, path: '/test' },
 ];
 
 export default function Layout({ children }: LayoutProps) {

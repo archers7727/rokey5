@@ -10,6 +10,7 @@ import Events from './pages/Events';
 import Payments from './pages/Payments';
 import Reports from './pages/Reports';
 import CustomerView from './pages/CustomerView';
+import TestSimulator from './pages/TestSimulator';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
                 <Route path="/events" element={<Events />} />
                 <Route path="/payments" element={<Payments />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/test" element={<TestSimulator />} />
               </Routes>
             </Layout>
           </ProtectedRoute>
