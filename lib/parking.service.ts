@@ -211,6 +211,28 @@ export class ParkingService {
         }
       }
 
+      // 7. ROS2 명령 전송 (출구 게이트 열기)
+      const { error: commandError } = await supabase
+        .from('ros2_commands')
+        .insert({
+          command_type: 'EXIT_GATE_OPEN',
+          session_id,
+          license_plate: session.license_plate,
+          parking_spot_id: session.parking_spot_id,
+          payload: {
+            gate_id: 'EXIT-01',
+            action: 'open_gate',
+            duration_seconds: 10,
+            total_fee: fee.total_fee,
+          },
+          status: 'pending',
+        });
+
+      if (commandError) {
+        console.error('ROS2 command error:', commandError);
+        // 명령 전송 실패해도 출차는 성공으로 처리
+      }
+
       return {
         success: true,
         data: {
