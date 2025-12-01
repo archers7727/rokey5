@@ -19,7 +19,7 @@ import {
   TableCell,
 } from '@mui/material';
 import { DirectionsCar, AccessTime, Payment } from '@mui/icons-material';
-import { supabase, subscribeToParkingStatus } from '../services/supabase';
+import { supabase } from '../services/supabase';
 import type { ParkingCurrentStatus, ParkingSession, Vehicle, Customer } from '../types/database.types';
 
 interface ParkingSpotDetail {

@@ -62,7 +62,15 @@ class ApiClient {
    * 출차 처리
    */
   async processExit(session_id: string, gate_id?: string) {
-    return this.request('/parking/exit', {
+    return this.request<{
+      session_id: string;
+      exit_time: string;
+      fee: {
+        base_fee: number;
+        additional_fee: number;
+        total_fee: number;
+      };
+    }>('/parking/exit', {
       method: 'POST',
       body: JSON.stringify({ session_id, gate_id }),
     });
@@ -72,7 +80,7 @@ class ApiClient {
    * 고객 세션 조회
    */
   async getCustomerSession(customer_id: string) {
-    return this.request(`/customer/session?customer_id=${customer_id}`, {
+    return this.request<any>(`/customer/session?customer_id=${customer_id}`, {
       method: 'GET',
     });
   }
