@@ -145,7 +145,7 @@ export default function CustomerView() {
 
     try {
       // 1. 출차 이벤트 생성
-      await supabase.table('parking_events').insert({
+      await supabase.from('parking_events').insert({
         license_plate: session.license_plate,
         event_type: 'exit',
         gate_id: 'CUSTOMER-APP',
@@ -153,7 +153,7 @@ export default function CustomerView() {
       });
 
       // 2. 세션 종료
-      await supabase.table('parking_sessions').update({
+      await supabase.from('parking_sessions').update({
         exit_time: new Date().toISOString(),
         status: 'exited',
       }).eq('session_id', session.session_id);
@@ -168,7 +168,7 @@ export default function CustomerView() {
         const fee = feeData.data[0];
 
         // 4. 요금 기록
-        await supabase.table('parking_fees').insert({
+        await supabase.from('parking_fees').insert({
           session_id: session.session_id,
           base_fee: fee.base_fee,
           additional_fee: fee.additional_fee,
@@ -179,7 +179,7 @@ export default function CustomerView() {
 
       // 5. 주차 공간 비우기
       if (session.parking_spot_id) {
-        await supabase.table('parking_current_status').update({
+        await supabase.from('parking_current_status').update({
           is_occupied: false,
         }).eq('spot_id', session.parking_spot_id);
       }
