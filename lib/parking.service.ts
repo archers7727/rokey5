@@ -21,9 +21,10 @@ export class ParkingService {
     try {
       // 1. 빈 주차 공간 찾기
       const { data: availableSpot, error: spotError } = await supabase
-        .from('parking_current_status')
+        .from('parking_locations')
         .select('*')
         .eq('is_occupied', false)
+        .eq('location_type', 'parking') // preparation 구역 제외
         .limit(1)
         .single();
 
@@ -61,7 +62,7 @@ export class ParkingService {
         vehicle_id: vehicle_id || null,
         customer_id: customer_id || null,
         license_plate,
-        parking_spot_id: availableSpot.spot_id,
+        parking_spot_id: availableSpot.location_id,
         entry_time: new Date().toISOString(),
         status: 'parked',
       };
@@ -82,9 +83,12 @@ export class ParkingService {
 
       // 4. 주차 공간 점유 상태 업데이트
       const { error: statusError } = await supabase
-        .from('parking_current_status')
-        .update({ is_occupied: true })
-        .eq('spot_id', availableSpot.spot_id);
+        .from('parking_locations')
+        .update({
+          is_occupied: true,
+          last_updated: new Date().toISOString()
+        })
+        .eq('location_id', availableSpot.location_id);
 
       if (statusError) {
         console.error('Status update error:', statusError);
@@ -95,7 +99,7 @@ export class ParkingService {
         success: true,
         data: {
           session,
-          parking_spot: availableSpot.spot_id,
+          parking_spot: availableSpot.location_id,
         },
         message: 'Vehicle entry processed successfully',
       };
@@ -202,9 +206,12 @@ export class ParkingService {
       // 6. 주차 공간 비우기
       if (session.parking_spot_id) {
         const { error: spotError } = await supabase
-          .from('parking_current_status')
-          .update({ is_occupied: false })
-          .eq('spot_id', session.parking_spot_id);
+          .from('parking_locations')
+          .update({
+            is_occupied: false,
+            last_updated: new Date().toISOString()
+          })
+          .eq('location_id', session.parking_spot_id);
 
         if (spotError) {
           console.error('Parking spot update error:', spotError);
@@ -224,9 +231,9 @@ export class ParkingService {
 
           // preparation 상태 확인
           const { data: prepSpot } = await supabase
-            .from('parking_current_status')
+            .from('parking_locations')
             .select('is_occupied')
-            .eq('spot_id', preparationSpotId)
+            .eq('location_id', preparationSpotId)
             .eq('location_type', 'preparation')
             .single();
 
@@ -331,9 +338,9 @@ export class ParkingService {
   static async getParkingStatus() {
     try {
       const { data, error } = await supabase
-        .from('parking_current_status')
+        .from('parking_locations')
         .select('*')
-        .order('spot_id');
+        .order('location_id');
 
       if (error) {
         return {
