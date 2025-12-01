@@ -1,0 +1,11 @@
+# ROS2 출차 컨트롤러 의존성
+
+# Supabase Python 클라이언트 (Realtime Subscribe 포함)
+supabase>=2.0.0
+
+# 추가 의존성 (supabase 패키지가 자동으로 설치)
+# - httpx
+# - python-dateutil
+# - postgrest-py
+# - realtime-py
+# - storage3
