@@ -9,6 +9,7 @@ import Vehicles from './pages/Vehicles';
 import Events from './pages/Events';
 import Payments from './pages/Payments';
 import Reports from './pages/Reports';
+import CustomerView from './pages/CustomerView';
 
 function App() {
   return (
@@ -16,11 +17,21 @@ function App() {
       {/* 로그인 페이지 */}
       <Route path="/login" element={<Login />} />
 
-      {/* 보호된 라우트 */}
+      {/* 고객 페이지 */}
+      <Route
+        path="/customer"
+        element={
+          <ProtectedRoute requiredRole="customer">
+            <CustomerView />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 관리자 페이지 */}
       <Route
         path="/*"
         element={
-          <ProtectedRoute>
+          <ProtectedRoute requiredRole="admin">
             <Layout>
               <Routes>
                 <Route path="/" element={<Dashboard />} />

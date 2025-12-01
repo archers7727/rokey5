@@ -21,14 +21,40 @@ export default function Login() {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 하드코딩된 관리자 계정
+    // 관리자 계정
     if (username === 'admin' && password === 'admin') {
-      // 로그인 성공 - localStorage에 저장
       localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userRole', 'admin');
       navigate('/');
-    } else {
-      setError('아이디 또는 비밀번호가 올바르지 않습니다.');
+      return;
     }
+
+    // 고객 계정 (customer1, customer2, customer3)
+    const customerAccounts: Record<string, { customerId: string; name: string }> = {
+      'customer1': {
+        customerId: '550e8400-e29b-41d4-a716-446655440001',
+        name: '홍길동'
+      },
+      'customer2': {
+        customerId: '550e8400-e29b-41d4-a716-446655440002',
+        name: '김철수'
+      },
+      'customer3': {
+        customerId: '550e8400-e29b-41d4-a716-446655440003',
+        name: '이영희'
+      }
+    };
+
+    if (customerAccounts[username] && password === '1234') {
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('userRole', 'customer');
+      localStorage.setItem('customerId', customerAccounts[username].customerId);
+      localStorage.setItem('customerName', customerAccounts[username].name);
+      navigate('/customer');
+      return;
+    }
+
+    setError('아이디 또는 비밀번호가 올바르지 않습니다.');
   };
 
   return (
@@ -60,10 +86,10 @@ export default function Login() {
                 <LockIcon sx={{ fontSize: 40, color: 'white' }} />
               </Box>
               <Typography variant="h4" fontWeight="bold" gutterBottom>
-                스마트 주차장 관리
+                스마트 주차장
               </Typography>
               <Typography color="textSecondary">
-                관리자 로그인
+                로그인
               </Typography>
             </Box>
 
@@ -104,8 +130,11 @@ export default function Login() {
             </form>
 
             <Box textAlign="center" mt={2}>
-              <Typography variant="caption" color="textSecondary">
-                기본 계정: admin / admin
+              <Typography variant="caption" color="textSecondary" display="block">
+                관리자: admin / admin
+              </Typography>
+              <Typography variant="caption" color="textSecondary" display="block">
+                고객: customer1, customer2, customer3 / 1234
               </Typography>
             </Box>
           </CardContent>
