@@ -91,12 +91,13 @@ rokey5/
    ```sql
    -- supabase/seed.sql 파일 내용 복사하여 실행
    ```
-4. Realtime 활성화:
+4. Realtime 활성화 (⚠️ 중요!):
    - Database > Replication 설정
    - 다음 테이블에 대해 Realtime 활성화:
-     - `parking_current_status`
+     - `parking_current_status` (또는 `parking_locations`)
      - `parking_events`
      - `parking_sessions`
+     - `ros2_commands` ← **ROS2 통합 시 필수!**
 
 ### 2. Frontend 설정
 
