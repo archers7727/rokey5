@@ -143,7 +143,7 @@ export default function TestSimulator() {
       }
 
       // 1. 입차 이벤트 생성
-      await supabase.from('parking_events').insert({
+      const { error: eventError } = await supabase.from('parking_events').insert({
         vehicle_id: vehicle.vehicle_id,
         license_plate: vehicle.license_plate,
         event_type: 'entry',
@@ -151,8 +151,13 @@ export default function TestSimulator() {
         is_registered: true,
       });
 
+      if (eventError) {
+        console.error('Event insert error:', eventError);
+        throw new Error(`입차 이벤트 생성 실패: ${eventError.message}`);
+      }
+
       // 2. 주차 세션 생성
-      await supabase.from('parking_sessions').insert({
+      const { error: sessionError } = await supabase.from('parking_sessions').insert({
         vehicle_id: vehicle.vehicle_id,
         customer_id: selectedCustomer,
         license_plate: vehicle.license_plate,
@@ -161,14 +166,24 @@ export default function TestSimulator() {
         status: 'parked',
       });
 
+      if (sessionError) {
+        console.error('Session insert error:', sessionError);
+        throw new Error(`주차 세션 생성 실패: ${sessionError.message}`);
+      }
+
       // 3. 주차 위치 점유 상태 업데이트
-      await supabase
+      const { error: updateError } = await supabase
         .from('parking_locations')
         .update({
           is_occupied: true,
           last_updated: new Date().toISOString(),
         })
         .eq('location_id', selectedLocation);
+
+      if (updateError) {
+        console.error('Location update error:', updateError);
+        throw new Error(`주차 위치 업데이트 실패: ${updateError.message}`);
+      }
 
       setMessage({ type: 'success', text: '✅ 입차 완료!' });
       setSelectedCustomer('');
