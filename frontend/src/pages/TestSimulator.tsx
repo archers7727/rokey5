@@ -28,6 +28,7 @@ import {
   Refresh,
   DirectionsCar,
   LocalParking,
+  RestartAlt,
 } from '@mui/icons-material';
 import { supabase } from '../services/supabase';
 
@@ -357,13 +358,112 @@ export default function TestSimulator() {
     }
   };
 
+  const handleFullReset = async () => {
+    if (!window.confirm('전체 리셋하시겠습니까?\n모든 주차 데이터를 초기화하고 A_1_1, A_1_2, C_1_1에 20시간 주차된 테스트 데이터를 생성합니다.')) {
+      return;
+    }
+
+    setProcessing(true);
+    setMessage(null);
+
+    try {
+      // 1. 모든 주차 세션 삭제 (exited 포함)
+      await supabase.from('parking_sessions').delete().neq('session_id', '00000000-0000-0000-0000-000000000000');
+
+      // 2. 모든 주차 위치 비우기
+      await supabase
+        .from('parking_locations')
+        .update({ is_occupied: false, last_updated: new Date().toISOString() })
+        .eq('location_type', 'parking');
+
+      // 3. 모든 ROS2 명령 삭제
+      await supabase.from('ros2_commands').delete().neq('command_id', '00000000-0000-0000-0000-000000000000');
+
+      // 4. 모든 주차 요금 삭제
+      await supabase.from('parking_fees').delete().neq('fee_id', '00000000-0000-0000-0000-000000000000');
+
+      // 5. 테스트 데이터 생성 - 20시간 전 입차
+      const twentyHoursAgo = new Date();
+      twentyHoursAgo.setHours(twentyHoursAgo.getHours() - 20);
+      const entryTime = twentyHoursAgo.toISOString();
+
+      // 고객 1, 2, 3의 차량 정보 가져오기
+      const { data: vehiclesData } = await supabase
+        .from('vehicles')
+        .select('*')
+        .in('customer_id', ['customer1', 'customer2', 'customer3'])
+        .order('customer_id');
+
+      if (!vehiclesData || vehiclesData.length < 3) {
+        throw new Error('고객 1, 2, 3의 차량 정보를 찾을 수 없습니다');
+      }
+
+      const testLocations = ['A_1_1', 'A_1_2', 'C_1_1'];
+
+      // 6. 3개 테스트 세션 생성
+      for (let i = 0; i < 3; i++) {
+        const vehicle = vehiclesData[i];
+        const location = testLocations[i];
+
+        // 입차 이벤트
+        await supabase.from('parking_events').insert({
+          vehicle_id: vehicle.vehicle_id,
+          license_plate: vehicle.license_plate,
+          event_type: 'entry',
+          gate_id: 'TEST-RESET',
+          is_registered: true,
+        });
+
+        // 주차 세션
+        await supabase.from('parking_sessions').insert({
+          vehicle_id: vehicle.vehicle_id,
+          customer_id: vehicle.customer_id,
+          license_plate: vehicle.license_plate,
+          parking_spot_id: location,
+          entry_time: entryTime,
+          status: 'parked',
+        });
+
+        // 주차 위치 점유
+        await supabase
+          .from('parking_locations')
+          .update({ is_occupied: true, last_updated: new Date().toISOString() })
+          .eq('location_id', location);
+      }
+
+      setMessage({
+        type: 'success',
+        text: '🔄 전체 리셋 완료! A_1_1, A_1_2, C_1_1에 20시간 주차 상태로 초기화되었습니다.'
+      });
+
+      // 데이터 새로고침
+      setTimeout(() => fetchData(), 500);
+    } catch (error: any) {
+      setMessage({ type: 'error', text: `❌ 오류: ${error.message}` });
+      console.error('Full reset error:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const availableLocations = parkingLocations.filter(loc => !loc.is_occupied);
 
   return (
     <Box>
-      <Typography variant="h4" gutterBottom>
-        🧪 테스트 시뮬레이터
-      </Typography>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="h4">
+          🧪 테스트 시뮬레이터
+        </Typography>
+        <Button
+          variant="outlined"
+          color="warning"
+          startIcon={<RestartAlt />}
+          onClick={handleFullReset}
+          disabled={processing}
+        >
+          전체 리셋
+        </Button>
+      </Box>
 
       {message && (
         <Alert severity={message.type} sx={{ mb: 2 }} onClose={() => setMessage(null)}>
