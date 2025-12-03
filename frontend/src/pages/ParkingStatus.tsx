@@ -20,10 +20,19 @@ import {
 } from '@mui/material';
 import { DirectionsCar, AccessTime, Payment } from '@mui/icons-material';
 import { supabase, subscribeToParkingStatus } from '../services/supabase';
-import type { ParkingCurrentStatus, ParkingSession, Vehicle, Customer } from '../types/database.types';
+import type { ParkingSession, Vehicle, Customer } from '../types/database.types';
+
+interface ParkingLocation {
+  location_id: string;
+  location_type: string;
+  zone: string;
+  floor: string;
+  is_occupied: boolean;
+  last_updated: string;
+}
 
 interface ParkingSpotDetail {
-  spot: ParkingCurrentStatus;
+  spot: ParkingLocation;
   session?: ParkingSession & {
     vehicles?: Vehicle & { customers?: Customer };
   };
@@ -32,7 +41,7 @@ interface ParkingSpotDetail {
 }
 
 export default function ParkingStatus() {
-  const [parkingSpots, setParkingSpots] = useState<ParkingCurrentStatus[]>([]);
+  const [parkingSpots, setParkingSpots] = useState<ParkingLocation[]>([]);
   const [selectedZone, setSelectedZone] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpotDetail | null>(null);
@@ -53,9 +62,10 @@ export default function ParkingStatus() {
   const fetchParkingStatus = async () => {
     try {
       const { data, error } = await supabase
-        .from('parking_current_status')
+        .from('parking_locations')
         .select('*')
-        .order('spot_id');
+        .eq('location_type', 'parking')  // parking 타입만 (preparation 제외)
+        .order('location_id');
 
       if (error) throw error;
       setParkingSpots(data || []);
@@ -66,7 +76,7 @@ export default function ParkingStatus() {
     }
   };
 
-  const handleSpotClick = async (spot: ParkingCurrentStatus) => {
+  const handleSpotClick = async (spot: ParkingLocation) => {
     if (!spot.is_occupied) {
       return; // 비어있는 공간은 클릭 불가
     }
@@ -82,7 +92,7 @@ export default function ParkingStatus() {
             customers (*)
           )
         `)
-        .eq('parking_spot_id', spot.spot_id)
+        .eq('parking_spot_id', spot.location_id)
         .eq('status', 'parked')
         .single();
 
@@ -262,7 +272,7 @@ export default function ParkingStatus() {
         </Typography>
         <Grid container spacing={2}>
           {filteredSpots.map((spot) => (
-            <Grid item key={spot.spot_id} xs={6} sm={4} md={3} lg={2}>
+            <Grid item key={spot.location_id} xs={6} sm={4} md={3} lg={2}>
               <Paper
                 onClick={() => handleSpotClick(spot)}
                 sx={{
@@ -280,7 +290,7 @@ export default function ParkingStatus() {
                 }}
               >
                 <Typography variant="h6" color="white">
-                  {spot.spot_id}
+                  {spot.location_id}
                 </Typography>
                 <Chip
                   label={spot.is_occupied ? '점유' : '비어있음'}
@@ -291,11 +301,6 @@ export default function ParkingStatus() {
                     color: spot.is_occupied ? 'error.main' : 'success.main',
                   }}
                 />
-                {spot.confidence && (
-                  <Typography variant="caption" display="block" sx={{ mt: 1, color: 'white' }}>
-                    신뢰도: {Math.round(spot.confidence * 100)}%
-                  </Typography>
-                )}
               </Paper>
             </Grid>
           ))}
@@ -347,7 +352,7 @@ export default function ParkingStatus() {
               {/* 주차 공간 정보 */}
               <Paper sx={{ p: 2, mb: 2, bgcolor: 'primary.light' }}>
                 <Typography variant="h5" color="white" textAlign="center">
-                  {selectedSpot.spot.spot_id}
+                  {selectedSpot.spot.location_id}
                 </Typography>
                 <Typography variant="body2" color="white" textAlign="center" sx={{ mt: 1 }}>
                   {selectedSpot.spot.zone}구역 · {selectedSpot.spot.floor}
