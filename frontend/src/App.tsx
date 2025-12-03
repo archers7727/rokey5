@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ParkingStatus from './pages/ParkingStatus';
+import RobotMonitor from './pages/RobotMonitor';
 import Customers from './pages/Customers';
 import Vehicles from './pages/Vehicles';
 import Events from './pages/Events';
@@ -37,6 +38,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/parking-status" element={<ParkingStatus />} />
+                <Route path="/robot-monitor" element={<RobotMonitor />} />
                 <Route path="/customers" element={<Customers />} />
                 <Route path="/vehicles" element={<Vehicles />} />
                 <Route path="/events" element={<Events />} />
