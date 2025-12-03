@@ -22,9 +22,11 @@ import {
   Payment,
   ExitToApp,
   Logout as LogoutIcon,
+  ArrowBack,
 } from '@mui/icons-material';
 import { api } from '../services/api';
 import type { ParkingSession, Vehicle } from '../types/database.types';
+import ExitMonitoring from '../components/ExitMonitoring';
 
 interface CustomerSession extends ParkingSession {
   vehicles?: Vehicle;
@@ -37,6 +39,8 @@ export default function CustomerView() {
   const [estimatedFee, setEstimatedFee] = useState(0);
   const [parkingTime, setParkingTime] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [showMonitoring, setShowMonitoring] = useState(false);
+  const [exitLicensePlate, setExitLicensePlate] = useState<string>('');
 
   const customerName = localStorage.getItem('customerName') || '고객';
   const customerId = localStorage.getItem('customerId');
@@ -158,15 +162,23 @@ export default function CustomerView() {
 
       console.log('✅ 출차 처리 완료:', response.data);
 
-      const fee = response.data?.fee?.total_fee || estimatedFee;
-      alert(`출차가 완료되었습니다.\n주차 요금: ₩${fee.toLocaleString()}`);
-      setSession(null);
+      // 출차 모니터링 화면으로 전환
+      setExitLicensePlate(session.license_plate);
+      setShowMonitoring(true);
     } catch (error) {
       console.error('출차 오류:', error);
       alert('출차 처리 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleMonitoringComplete = () => {
+    const fee = estimatedFee;
+    alert(`출차가 완료되었습니다.\n주차 요금: ₩${fee.toLocaleString()}`);
+    setSession(null);
+    setShowMonitoring(false);
+    setExitLicensePlate('');
   };
 
   const handleLogout = () => {
@@ -314,23 +326,35 @@ export default function CustomerView() {
             </Card>
 
             {/* 출차 버튼 */}
-            <Button
-              fullWidth
-              variant="contained"
-              color="error"
-              size="large"
-              startIcon={<ExitToApp />}
-              onClick={handleExit}
-              disabled={processing}
-              sx={{ py: 2, fontSize: '1.2rem' }}
-            >
-              {processing ? '처리 중...' : '출차하기'}
-            </Button>
+            {!showMonitoring && (
+              <>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  color="error"
+                  size="large"
+                  startIcon={<ExitToApp />}
+                  onClick={handleExit}
+                  disabled={processing}
+                  sx={{ py: 2, fontSize: '1.2rem' }}
+                >
+                  {processing ? '처리 중...' : '출차하기'}
+                </Button>
 
-            {/* 안내 메시지 */}
-            <Alert severity="info" sx={{ mt: 2 }}>
-              출차 버튼을 누르면 자동으로 출차 처리되며, 주차 요금이 확정됩니다.
-            </Alert>
+                {/* 안내 메시지 */}
+                <Alert severity="info" sx={{ mt: 2 }}>
+                  출차 버튼을 누르면 자동으로 출차 처리되며, 주차 요금이 확정됩니다.
+                </Alert>
+              </>
+            )}
+
+            {/* 출차 모니터링 */}
+            {showMonitoring && exitLicensePlate && (
+              <ExitMonitoring
+                licensePlate={exitLicensePlate}
+                onComplete={handleMonitoringComplete}
+              />
+            )}
           </Box>
         )}
       </Container>

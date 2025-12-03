@@ -133,6 +133,26 @@ export interface TodayStatistics {
   available_spaces: number;
 }
 
+export interface Task {
+  task_id: string;
+  task_type: 'ENTER' | 'EXIT' | 'MOVE' | 'PARK' | string;
+  vehicle_plate: string;
+  vehicle_type?: string;
+  blocking_vehicle?: string;
+  assigned_robot?: string;
+  helper_robot?: string;
+  start_location?: string;
+  target_location?: string;
+  blocking_location?: string;
+  temp_location?: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | string;
+  done: boolean;
+  priority: number;
+  created_at: string;
+  started_at?: string;
+  completed_at?: string;
+}
+
 // Join 타입 (고객 + 차량 정보)
 export interface CustomerWithVehicles extends Customer {
   vehicles?: Vehicle[];
