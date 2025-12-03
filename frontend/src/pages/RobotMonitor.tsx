@@ -332,7 +332,7 @@ export default function RobotMonitor() {
                     <TableCell>
                       <Chip label={formatValue(task.task_type)} variant="outlined" size="small" />
                     </TableCell>
-                    <TableCell fontWeight="bold">{formatValue(task.vehicle_plate)}</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{formatValue(task.vehicle_plate)}</TableCell>
                     <TableCell>{formatValue(task.vehicle_type)}</TableCell>
                     <TableCell>{formatValue(task.start_location)}</TableCell>
                     <TableCell>{formatValue(task.target_location)}</TableCell>
