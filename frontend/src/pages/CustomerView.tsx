@@ -21,7 +21,6 @@ import {
   Payment,
   ExitToApp,
   Logout as LogoutIcon,
-  ArrowBack,
 } from '@mui/icons-material';
 import { api } from '../services/api';
 import type { ParkingSession, Vehicle } from '../types/database.types';

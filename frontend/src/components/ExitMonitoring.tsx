@@ -98,21 +98,6 @@ export default function ExitMonitoring({ licensePlate, onComplete }: ExitMonitor
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'info';
-      case 'failed':
-        return 'error';
-      case 'pending':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
