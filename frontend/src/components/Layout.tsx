@@ -27,6 +27,7 @@ import {
   Assessment as ReportIcon,
   Logout as LogoutIcon,
   Science as TestIcon,
+  Speed as RobotIcon,
 } from '@mui/icons-material';
 
 const drawerWidth = 240;
@@ -38,6 +39,7 @@ interface LayoutProps {
 const menuItems = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/' },
   { text: '실시간 주차 현황', icon: <ParkingIcon />, path: '/parking-status' },
+  { text: '🤖 로봇 모니터', icon: <RobotIcon />, path: '/robot-monitor' },
   { text: '고객 관리', icon: <PeopleIcon />, path: '/customers' },
   { text: '차량 관리', icon: <CarIcon />, path: '/vehicles' },
   { text: '입출차 이벤트', icon: <EventIcon />, path: '/events' },
