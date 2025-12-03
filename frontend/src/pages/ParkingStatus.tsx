@@ -20,7 +20,7 @@ import {
 } from '@mui/material';
 import { DirectionsCar, AccessTime, Payment } from '@mui/icons-material';
 import { supabase } from '../services/supabase';
-import type { ParkingSession, Vehicle, Customer } from '../types/database.types';
+import type { ParkingSession, Vehicle, Customer, Task } from '../types/database.types';
 
 interface ParkingLocation {
   location_id: string;
@@ -36,6 +36,7 @@ interface ParkingSpotDetail {
   session?: ParkingSession & {
     vehicles?: Vehicle & { customers?: Customer };
   };
+  task?: Task;  // Task 정보 추가
   parkingTime?: number; // 분 단위
   estimatedFee?: number;
 }
@@ -82,7 +83,7 @@ export default function ParkingStatus() {
     }
 
     try {
-      // 해당 주차 공간의 세션 조회
+      // 1. 먼저 주차 세션 조회
       const { data: sessionData, error: sessionError } = await supabase
         .from('parking_sessions')
         .select(`
@@ -96,25 +97,41 @@ export default function ParkingStatus() {
         .eq('status', 'parked')
         .single();
 
-      if (sessionError) {
-        console.error('세션 조회 오류:', sessionError);
-        return;
+      let spotDetail: ParkingSpotDetail = { spot };
+
+      if (sessionData && !sessionError) {
+        // 세션이 있으면 세션 정보 사용
+        const entryTime = new Date(sessionData.entry_time);
+        const now = new Date();
+        const parkingTime = Math.floor((now.getTime() - entryTime.getTime()) / (1000 * 60));
+        const estimatedFee = calculateFee(parkingTime);
+
+        spotDetail = {
+          spot,
+          session: sessionData,
+          parkingTime,
+          estimatedFee,
+        };
+      } else {
+        // 세션이 없으면 Task 조회 (로봇이 작업 중인 경우)
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('*')
+          .or(`start_location.eq.${spot.location_id},target_location.eq.${spot.location_id}`)
+          .in('status', ['pending', 'in_progress'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (taskData) {
+          spotDetail = {
+            spot,
+            task: taskData,
+          };
+        }
       }
 
-      // 주차 시간 계산 (분 단위)
-      const entryTime = new Date(sessionData.entry_time);
-      const now = new Date();
-      const parkingTime = Math.floor((now.getTime() - entryTime.getTime()) / (1000 * 60));
-
-      // 요금 계산 (간단한 로직)
-      const estimatedFee = calculateFee(parkingTime);
-
-      setSelectedSpot({
-        spot,
-        session: sessionData,
-        parkingTime,
-        estimatedFee,
-      });
+      setSelectedSpot(spotDetail);
       setDialogOpen(true);
     } catch (error) {
       console.error('Error fetching spot details:', error);
@@ -361,93 +378,157 @@ export default function ParkingStatus() {
 
               <Divider sx={{ my: 2 }} />
 
-              {/* 차량 정보 */}
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  <DirectionsCar sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
-                  차량 정보
-                </Typography>
-                <Table size="small">
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>차량번호</TableCell>
-                      <TableCell>
-                        <Typography fontWeight="bold">
-                          {selectedSpot.session?.license_plate || '-'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>소유자</TableCell>
-                      <TableCell>
-                        {selectedSpot.session?.vehicles?.customers?.name || '미등록'}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>전화번호</TableCell>
-                      <TableCell>
-                        {selectedSpot.session?.vehicles?.customers?.phone || '-'}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>차량 종류</TableCell>
-                      <TableCell>
-                        {selectedSpot.session?.vehicles?.vehicle_type || '-'}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </Box>
+              {/* 세션 정보가 있는 경우 */}
+              {selectedSpot.session && (
+                <>
+                  {/* 차량 정보 */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                      <DirectionsCar sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                      차량 정보
+                    </Typography>
+                    <Table size="small">
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>차량번호</TableCell>
+                          <TableCell>
+                            <Typography fontWeight="bold">
+                              {selectedSpot.session?.license_plate || '-'}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>소유자</TableCell>
+                          <TableCell>
+                            {selectedSpot.session?.vehicles?.customers?.name || '미등록'}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>전화번호</TableCell>
+                          <TableCell>
+                            {selectedSpot.session?.vehicles?.customers?.phone || '-'}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>차량 종류</TableCell>
+                          <TableCell>
+                            {selectedSpot.session?.vehicles?.vehicle_type || '-'}
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </Box>
+                </>
+              )}
 
-              <Divider sx={{ my: 2 }} />
+              {/* Task 정보만 있는 경우 (로봇 작업 중) */}
+              {!selectedSpot.session && selectedSpot.task && (
+                <>
+                  <Alert severity="info" sx={{ mb: 2 }}>
+                    🤖 로봇이 작업 중입니다
+                  </Alert>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                      <DirectionsCar sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                      작업 정보
+                    </Typography>
+                    <Table size="small">
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>차량번호</TableCell>
+                          <TableCell>
+                            <Typography fontWeight="bold">
+                              {selectedSpot.task.vehicle_plate || '익명'}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>작업 타입</TableCell>
+                          <TableCell>
+                            <Chip label={selectedSpot.task.task_type} size="small" />
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>할당된 로봇</TableCell>
+                          <TableCell>{selectedSpot.task.assigned_robot || '-'}</TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>상태</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={selectedSpot.task.status === 'in_progress' ? '진행중' : '대기중'}
+                              color={selectedSpot.task.status === 'in_progress' ? 'info' : 'warning'}
+                              size="small"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </Box>
+                </>
+              )}
 
-              {/* 주차 시간 정보 */}
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  <AccessTime sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
-                  주차 시간
-                </Typography>
-                <Table size="small">
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>입차 시간</TableCell>
-                      <TableCell>
-                        {selectedSpot.session?.entry_time
-                          ? new Date(selectedSpot.session.entry_time).toLocaleString('ko-KR')
-                          : '-'}
-                      </TableCell>
-                    </TableRow>
-                    <TableRow>
-                      <TableCell>주차 시간</TableCell>
-                      <TableCell>
-                        <Typography fontWeight="bold" color="primary">
-                          {selectedSpot.parkingTime !== undefined
-                            ? formatTime(selectedSpot.parkingTime)
-                            : '-'}
-                        </Typography>
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </Box>
+              {/* 세션도 Task도 없는 경우 */}
+              {!selectedSpot.session && !selectedSpot.task && (
+                <Alert severity="warning">
+                  점유되어 있지만 세부 정보를 찾을 수 없습니다.
+                </Alert>
+              )}
 
-              <Divider sx={{ my: 2 }} />
+              {/* 주차 시간 및 요금 정보 (세션이 있을 때만) */}
+              {selectedSpot.session && (
+                <>
+                  <Divider sx={{ my: 2 }} />
 
-              {/* 요금 정보 */}
-              <Box>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                  <Payment sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
-                  예상 주차 요금
-                </Typography>
-                <Paper sx={{ p: 2, bgcolor: 'success.light', textAlign: 'center' }}>
-                  <Typography variant="h4" color="white" fontWeight="bold">
-                    ₩{selectedSpot.estimatedFee?.toLocaleString() || '0'}
-                  </Typography>
-                  <Typography variant="caption" color="white" sx={{ mt: 1, display: 'block' }}>
-                    * 출차 시 최종 요금이 계산됩니다
-                  </Typography>
-                </Paper>
-              </Box>
+                  {/* 주차 시간 정보 */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                      <AccessTime sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                      주차 시간
+                    </Typography>
+                    <Table size="small">
+                      <TableBody>
+                        <TableRow>
+                          <TableCell>입차 시간</TableCell>
+                          <TableCell>
+                            {selectedSpot.session?.entry_time
+                              ? new Date(selectedSpot.session.entry_time).toLocaleString('ko-KR')
+                              : '-'}
+                          </TableCell>
+                        </TableRow>
+                        <TableRow>
+                          <TableCell>주차 시간</TableCell>
+                          <TableCell>
+                            <Typography fontWeight="bold" color="primary">
+                              {selectedSpot.parkingTime !== undefined
+                                ? formatTime(selectedSpot.parkingTime)
+                                : '-'}
+                            </Typography>
+                          </TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  {/* 요금 정보 */}
+                  <Box>
+                    <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                      <Payment sx={{ fontSize: 16, verticalAlign: 'middle', mr: 0.5 }} />
+                      예상 주차 요금
+                    </Typography>
+                    <Paper sx={{ p: 2, bgcolor: 'success.light', textAlign: 'center' }}>
+                      <Typography variant="h4" color="white" fontWeight="bold">
+                        ₩{selectedSpot.estimatedFee?.toLocaleString() || '0'}
+                      </Typography>
+                      <Typography variant="caption" color="white" sx={{ mt: 1, display: 'block' }}>
+                        * 출차 시 최종 요금이 계산됩니다
+                      </Typography>
+                    </Paper>
+                  </Box>
+                </>
+              )}
             </Box>
           )}
         </DialogContent>
