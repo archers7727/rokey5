@@ -387,15 +387,19 @@ export default function TestSimulator() {
       twentyHoursAgo.setHours(twentyHoursAgo.getHours() - 20);
       const entryTime = twentyHoursAgo.toISOString();
 
-      // 고객 1, 2, 3의 차량 정보 가져오기
-      const { data: vehiclesData } = await supabase
+      // 처음 3명의 고객 차량 정보 가져오기
+      const { data: vehiclesData, error: vehiclesError } = await supabase
         .from('vehicles')
         .select('*')
-        .in('customer_id', ['customer1', 'customer2', 'customer3'])
-        .order('customer_id');
+        .order('customer_id')
+        .limit(3);
+
+      if (vehiclesError) {
+        throw new Error(`차량 정보 조회 실패: ${vehiclesError.message}`);
+      }
 
       if (!vehiclesData || vehiclesData.length < 3) {
-        throw new Error('고객 1, 2, 3의 차량 정보를 찾을 수 없습니다');
+        throw new Error('최소 3명의 고객 차량 정보가 필요합니다. 현재 등록된 차량: ' + (vehiclesData?.length || 0) + '개');
       }
 
       const testLocations = ['A_1_1', 'A_1_2', 'C_1_1'];
