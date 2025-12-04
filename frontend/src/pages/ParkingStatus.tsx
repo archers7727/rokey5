@@ -52,13 +52,26 @@ export default function ParkingStatus() {
   useEffect(() => {
     fetchParkingStatus();
 
-    // 실시간 업데이트 구독 (선택사항)
-    // const channel = subscribeToParkingStatus(() => {
-    //   fetchParkingStatus();
-    // });
-    // return () => {
-    //   supabase.removeChannel(channel);
-    // };
+    // 실시간 업데이트 구독
+    const channel = supabase
+      .channel('parking-locations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'parking_locations',
+        },
+        (payload) => {
+          console.log('Parking location change:', payload);
+          fetchParkingStatus(); // 변경 발생 시 전체 새로고침
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchParkingStatus = async () => {

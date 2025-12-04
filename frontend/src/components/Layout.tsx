@@ -29,6 +29,7 @@ import {
   Science as TestIcon,
   Speed as RobotIcon,
 } from '@mui/icons-material';
+import NotificationIcon from './NotificationIcon';
 
 const drawerWidth = 240;
 
@@ -122,11 +123,12 @@ export default function Layout({ children }: LayoutProps) {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             ROS2 기반 스마트 주차장 시스템
           </Typography>
+          <NotificationIcon />
           <Button
             color="inherit"
             startIcon={<LogoutIcon />}
             onClick={handleLogout}
-            sx={{ display: { xs: 'none', sm: 'flex' } }}
+            sx={{ display: { xs: 'none', sm: 'flex' }, ml: 2 }}
           >
             로그아웃
           </Button>

@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import App from './App';
+import { NotificationProvider } from './contexts/NotificationContext';
 
 // MUI 테마 설정
 const theme = createTheme({
@@ -33,7 +34,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <ThemeProvider theme={theme}>
         <CssBaseline />
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </ThemeProvider>
     </BrowserRouter>
   </React.StrictMode>
