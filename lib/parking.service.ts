@@ -247,7 +247,26 @@ export class ParkingService {
 
       console.log(`출차 타입: ${exitCommandType} (주차위치: ${session.parking_spot_id})`);
 
-      // 8. ROS2 명령 전송 (출구 게이트 열기)
+      // 8. Task 테이블에 출차 작업 생성 (ExitMonitoring을 위해 필요)
+      const { error: taskError } = await supabase
+        .from('tasks')
+        .insert({
+          task_type: 'EXIT',
+          vehicle_plate: session.license_plate,
+          assigned_robot: 'robot1', // 기본 로봇 할당
+          start_location: session.parking_spot_id,
+          target_location: 'EXIT_ZONE',
+          status: 'pending',
+          done: false,
+          priority: 50,
+        });
+
+      if (taskError) {
+        console.error('Task creation error:', taskError);
+        // Task 생성 실패해도 출차는 계속 진행
+      }
+
+      // 9. ROS2 명령 전송 (출구 게이트 열기)
       const { error: commandError } = await supabase
         .from('ros2_commands')
         .insert({
