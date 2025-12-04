@@ -154,17 +154,20 @@ export interface Task {
 }
 
 export interface Robot {
-  robot_id: string;
-  robot_name?: string;
+  id?: number;
+  robot_name: string;
   robot_type?: string;
-  status: 'idle' | 'busy' | 'charging' | 'error' | 'offline';
-  battery_level?: number;
+  status?: 'idle' | 'busy' | 'charging' | 'error' | 'offline';
+  battery_percentage?: number;
+  battery_voltage?: number;
+  is_charging?: boolean;
+  is_docked?: boolean;
   current_location?: string;
   current_x?: number;
   current_y?: number;
   current_orientation?: number;
-  last_updated: string;
-  created_at: string;
+  last_updated?: string;
+  created_at?: string;
 }
 
 export interface Notification {
