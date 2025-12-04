@@ -40,13 +40,13 @@ interface LayoutProps {
 const menuItems = [
   { text: '대시보드', icon: <DashboardIcon />, path: '/' },
   { text: '실시간 주차 현황', icon: <ParkingIcon />, path: '/parking-status' },
-  { text: '🤖 로봇 모니터', icon: <RobotIcon />, path: '/robot-monitor' },
+  { text: '로봇 모니터', icon: <RobotIcon />, path: '/robot-monitor' },
   { text: '고객 관리', icon: <PeopleIcon />, path: '/customers' },
   { text: '차량 관리', icon: <CarIcon />, path: '/vehicles' },
   { text: '입출차 이벤트', icon: <EventIcon />, path: '/events' },
   { text: '결제 관리', icon: <PaymentIcon />, path: '/payments' },
   { text: '통계 및 리포트', icon: <ReportIcon />, path: '/reports' },
-  { text: '🧪 테스트', icon: <TestIcon />, path: '/test' },
+  { text: '테스트', icon: <TestIcon />, path: '/test' },
 ];
 
 export default function Layout({ children }: LayoutProps) {

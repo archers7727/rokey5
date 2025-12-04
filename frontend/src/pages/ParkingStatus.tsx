@@ -48,6 +48,7 @@ export default function ParkingStatus() {
   const [loading, setLoading] = useState(true);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpotDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [youtubeUrl, setYoutubeUrl] = useState<string>('https://www.youtube.com/embed/dQw4w9WgXcQ'); // 기본 URL (변경 가능)
 
   useEffect(() => {
     fetchParkingStatus();
@@ -213,33 +214,34 @@ export default function ParkingStatus() {
         실시간 주차 현황
       </Typography>
 
-      {/* 일러스트 이미지 영역 */}
-      <Paper sx={{ p: 3, mb: 3, textAlign: 'center', bgcolor: '#f5f5f5' }}>
+      {/* YouTube 실시간 영상 */}
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h6" gutterBottom>
+          실시간 주차장 영상
+        </Typography>
         <Box
           sx={{
-            height: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            position: 'relative',
+            paddingBottom: '56.25%', // 16:9 비율
+            height: 0,
+            overflow: 'hidden',
             borderRadius: 2,
-            color: 'white',
           }}
         >
-          <Box textAlign="center">
-            <DirectionsCar sx={{ fontSize: 80, mb: 2 }} />
-            <Typography variant="h5" fontWeight="bold">
-              스마트 주차장 관리 시스템
-            </Typography>
-            <Typography variant="body2" sx={{ mt: 1, opacity: 0.9 }}>
-              여기에 일러스트 이미지를 배치하세요
-            </Typography>
-            <Typography variant="caption" sx={{ mt: 1, display: 'block', opacity: 0.7 }}>
-              frontend/public/parking-illustration.png 파일을 추가하고
-              <br />
-              &lt;img src="/parking-illustration.png" alt="주차장" /&gt; 로 사용
-            </Typography>
-          </Box>
+          <iframe
+            src={youtubeUrl}
+            title="실시간 주차장 영상"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+            }}
+          />
         </Box>
       </Paper>
 
