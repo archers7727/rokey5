@@ -418,7 +418,8 @@ export default function RobotMonitor() {
         )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   if (loading) {
     return (
