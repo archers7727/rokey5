@@ -50,7 +50,7 @@ export default function ParkingStatus() {
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Twitch 채널명과 도메인 설정 (OBS로 송출할 Twitch 채널명 입력)
-  const twitchChannel = 'YOUR_TWITCH_CHANNEL';  // 여기에 Twitch 채널명 입력
+  const twitchChannel = 'archering';  // 여기에 Twitch 채널명 입력
   const twitchUrl = `https://player.twitch.tv/?channel=${twitchChannel}&parent=${window.location.hostname}&muted=false`;
 
   useEffect(() => {
