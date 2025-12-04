@@ -16,6 +16,7 @@ import {
   CircularProgress,
   Alert,
   Divider,
+  LinearProgress,
 } from '@mui/material';
 import {
   SmartToy,
@@ -24,21 +25,32 @@ import {
   Schedule,
   PlayArrow,
   Speed,
+  Battery20,
+  Battery30,
+  Battery50,
+  Battery60,
+  Battery80,
+  Battery90,
+  BatteryFull,
+  BatteryAlert,
+  PowerSettingsNew,
 } from '@mui/icons-material';
 import { supabase } from '../services/supabase';
-import type { Task } from '../types/database.types';
+import type { Task, Robot } from '../types/database.types';
 
 export default function RobotMonitor() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
   const [robot1Task, setRobot1Task] = useState<Task | null>(null);
   const [robot2Task, setRobot2Task] = useState<Task | null>(null);
 
   useEffect(() => {
     fetchTasks();
+    fetchRobots();
 
     // Realtime Subscribe로 Task 실시간 업데이트
-    const channel = supabase
+    const tasksChannel = supabase
       .channel('robot-monitor-tasks')
       .on(
         'postgres_changes',
@@ -69,8 +81,41 @@ export default function RobotMonitor() {
       )
       .subscribe();
 
+    // Realtime Subscribe로 Robot 상태 실시간 업데이트
+    const robotsChannel = supabase
+      .channel('robot-monitor-robots')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'robots',
+        },
+        (payload) => {
+          console.log('Robot 변경:', payload);
+
+          if (payload.eventType === 'INSERT') {
+            setRobots((prev) => [...prev, payload.new as Robot]);
+          } else if (payload.eventType === 'UPDATE') {
+            setRobots((prev) =>
+              prev.map((robot) =>
+                robot.robot_id === (payload.new as Robot).robot_id
+                  ? (payload.new as Robot)
+                  : robot
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setRobots((prev) =>
+              prev.filter((robot) => robot.robot_id !== (payload.old as Robot).robot_id)
+            );
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      channel.unsubscribe();
+      tasksChannel.unsubscribe();
+      robotsChannel.unsubscribe();
     };
   }, []);
 
@@ -93,8 +138,6 @@ export default function RobotMonitor() {
 
   const fetchTasks = async () => {
     try {
-      setLoading(true);
-
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
@@ -107,6 +150,26 @@ export default function RobotMonitor() {
       }
 
       setTasks(data || []);
+    } catch (err) {
+      console.error('Error:', err);
+    }
+  };
+
+  const fetchRobots = async () => {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('robots')
+        .select('*')
+        .order('robot_id');
+
+      if (error) {
+        console.error('Robots 조회 오류:', error);
+        return;
+      }
+
+      setRobots(data || []);
     } catch (err) {
       console.error('Error:', err);
     } finally {
@@ -166,21 +229,134 @@ export default function RobotMonitor() {
     return value;
   };
 
-  const RobotCard = ({ robotName, task }: { robotName: string; task: Task | null }) => (
+  const getBatteryIcon = (batteryLevel?: number) => {
+    if (!batteryLevel) return <BatteryAlert />;
+    if (batteryLevel >= 90) return <BatteryFull />;
+    if (batteryLevel >= 80) return <Battery90 />;
+    if (batteryLevel >= 60) return <Battery80 />;
+    if (batteryLevel >= 50) return <Battery60 />;
+    if (batteryLevel >= 30) return <Battery50 />;
+    if (batteryLevel >= 20) return <Battery30 />;
+    return <Battery20 />;
+  };
+
+  const getBatteryColor = (batteryLevel?: number) => {
+    if (!batteryLevel) return 'error';
+    if (batteryLevel >= 50) return 'success.main';
+    if (batteryLevel >= 30) return 'warning.main';
+    return 'error.main';
+  };
+
+  const getStatusChipColor = (status?: string): 'success' | 'error' | 'warning' | 'info' | 'default' => {
+    switch (status) {
+      case 'idle':
+        return 'success';
+      case 'busy':
+        return 'info';
+      case 'charging':
+        return 'warning';
+      case 'error':
+        return 'error';
+      case 'offline':
+        return 'default';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusKorean = (status?: string) => {
+    switch (status) {
+      case 'idle':
+        return '대기 중';
+      case 'busy':
+        return '작업 중';
+      case 'charging':
+        return '충전 중';
+      case 'error':
+        return '오류';
+      case 'offline':
+        return '오프라인';
+      default:
+        return '알 수 없음';
+    }
+  };
+
+  const RobotCard = ({ robotId, robotName, task }: { robotId: string; robotName: string; task: Task | null }) => {
+    const robot = robots.find((r) => r.robot_id === robotId);
+
+    return (
     <Card sx={{ height: '100%', position: 'relative' }}>
       <CardContent>
-        <Box display="flex" alignItems="center" mb={2}>
-          <SmartToy sx={{ fontSize: 40, mr: 2, color: task ? 'primary.main' : 'text.secondary' }} />
-          <Box>
-            <Typography variant="h6" fontWeight="bold">
-              {robotName}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {task ? '작업 중' : '대기 중'}
-            </Typography>
+        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+          <Box display="flex" alignItems="center">
+            <SmartToy sx={{ fontSize: 40, mr: 2, color: task ? 'primary.main' : 'text.secondary' }} />
+            <Box>
+              <Typography variant="h6" fontWeight="bold">
+                {robotName}
+              </Typography>
+              <Chip
+                label={getStatusKorean(robot?.status)}
+                color={getStatusChipColor(robot?.status)}
+                size="small"
+              />
+            </Box>
           </Box>
         </Box>
 
+        {/* 배터리 및 도킹 상태 - 항상 표시 */}
+        <Box mb={2}>
+          <Divider sx={{ my: 2 }} />
+
+          {/* 배터리 레벨 */}
+          <Box mb={2}>
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+              <Box display="flex" alignItems="center" gap={1}>
+                <Box sx={{ color: getBatteryColor(robot?.battery_level) }}>
+                  {getBatteryIcon(robot?.battery_level)}
+                </Box>
+                <Typography variant="body2" fontWeight="bold">
+                  배터리
+                </Typography>
+              </Box>
+              <Typography variant="h6" fontWeight="bold" sx={{ color: getBatteryColor(robot?.battery_level) }}>
+                {robot?.battery_level !== undefined ? `${robot.battery_level}%` : '-'}
+              </Typography>
+            </Box>
+            {robot?.battery_level !== undefined && (
+              <LinearProgress
+                variant="determinate"
+                value={robot.battery_level}
+                sx={{
+                  height: 8,
+                  borderRadius: 1,
+                  backgroundColor: 'grey.200',
+                  '& .MuiLinearProgress-bar': {
+                    backgroundColor: getBatteryColor(robot.battery_level),
+                  },
+                }}
+              />
+            )}
+          </Box>
+
+          {/* 도킹 상태 */}
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Box display="flex" alignItems="center" gap={1}>
+              <PowerSettingsNew sx={{ color: robot?.status === 'charging' ? 'success.main' : 'text.secondary' }} />
+              <Typography variant="body2" fontWeight="bold">
+                도킹 상태
+              </Typography>
+            </Box>
+            <Chip
+              label={robot?.status === 'charging' ? '도킹됨' : '분리됨'}
+              color={robot?.status === 'charging' ? 'success' : 'default'}
+              size="small"
+            />
+          </Box>
+
+          <Divider sx={{ my: 2 }} />
+        </Box>
+
+        {/* 현재 작업 정보 */}
         {task ? (
           <Box>
             <Box display="flex" alignItems="center" gap={1} mb={2}>
@@ -242,7 +418,8 @@ export default function RobotMonitor() {
         )}
       </CardContent>
     </Card>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -270,10 +447,10 @@ export default function RobotMonitor() {
       {/* 로봇 상태 카드 */}
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} md={6}>
-          <RobotCard robotName="Robot 1" task={robot1Task} />
+          <RobotCard robotId="robot_01" robotName="Robot 1" task={robot1Task} />
         </Grid>
         <Grid item xs={12} md={6}>
-          <RobotCard robotName="Robot 2" task={robot2Task} />
+          <RobotCard robotId="robot_02" robotName="Robot 2" task={robot2Task} />
         </Grid>
       </Grid>
 
