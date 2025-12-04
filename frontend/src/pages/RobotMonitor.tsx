@@ -89,7 +89,7 @@ export default function RobotMonitor() {
         {
           event: '*',
           schema: 'public',
-          table: 'robots',
+          table: 'robot_status',
         },
         (payload) => {
           console.log('Robot 변경:', payload);
@@ -99,14 +99,14 @@ export default function RobotMonitor() {
           } else if (payload.eventType === 'UPDATE') {
             setRobots((prev) =>
               prev.map((robot) =>
-                robot.robot_id === (payload.new as Robot).robot_id
+                robot.robot_name === (payload.new as Robot).robot_name
                   ? (payload.new as Robot)
                   : robot
               )
             );
           } else if (payload.eventType === 'DELETE') {
             setRobots((prev) =>
-              prev.filter((robot) => robot.robot_id !== (payload.old as Robot).robot_id)
+              prev.filter((robot) => robot.robot_name !== (payload.old as Robot).robot_name)
             );
           }
         }
@@ -160,9 +160,9 @@ export default function RobotMonitor() {
       setLoading(true);
 
       const { data, error } = await supabase
-        .from('robots')
+        .from('robot_status')
         .select('*')
-        .order('robot_id');
+        .order('robot_name');
 
       if (error) {
         console.error('Robots 조회 오류:', error);
@@ -240,11 +240,18 @@ export default function RobotMonitor() {
     return <Battery20 />;
   };
 
-  const getBatteryColor = (batteryLevel?: number) => {
-    if (!batteryLevel) return 'error';
-    if (batteryLevel >= 50) return 'success.main';
-    if (batteryLevel >= 30) return 'warning.main';
+  const getBatteryColor = (batteryPercentage?: number) => {
+    if (!batteryPercentage) return 'error';
+    if (batteryPercentage >= 50) return 'success.main';
+    if (batteryPercentage >= 30) return 'warning.main';
     return 'error.main';
+  };
+
+  const getRobotStatus = (robot?: Robot): 'idle' | 'busy' | 'charging' | 'error' | 'offline' => {
+    if (!robot) return 'offline';
+    if (robot.is_charging) return 'charging';
+    if (robot.status) return robot.status;
+    return 'idle';
   };
 
   const getStatusChipColor = (status?: string): 'success' | 'error' | 'warning' | 'info' | 'default' => {
@@ -281,8 +288,9 @@ export default function RobotMonitor() {
     }
   };
 
-  const RobotCard = ({ robotId, robotName, task }: { robotId: string; robotName: string; task: Task | null }) => {
-    const robot = robots.find((r) => r.robot_id === robotId);
+  const RobotCard = ({ robotName, displayName, task }: { robotName: string; displayName: string; task: Task | null }) => {
+    const robot = robots.find((r) => r.robot_name === robotName);
+    const robotStatus = getRobotStatus(robot);
 
     return (
     <Card sx={{ height: '100%', position: 'relative' }}>
@@ -292,11 +300,11 @@ export default function RobotMonitor() {
             <SmartToy sx={{ fontSize: 40, mr: 2, color: task ? 'primary.main' : 'text.secondary' }} />
             <Box>
               <Typography variant="h6" fontWeight="bold">
-                {robotName}
+                {displayName}
               </Typography>
               <Chip
-                label={getStatusKorean(robot?.status)}
-                color={getStatusChipColor(robot?.status)}
+                label={getStatusKorean(robotStatus)}
+                color={getStatusChipColor(robotStatus)}
                 size="small"
               />
             </Box>
@@ -311,27 +319,27 @@ export default function RobotMonitor() {
           <Box mb={2}>
             <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
               <Box display="flex" alignItems="center" gap={1}>
-                <Box sx={{ color: getBatteryColor(robot?.battery_level) }}>
-                  {getBatteryIcon(robot?.battery_level)}
+                <Box sx={{ color: getBatteryColor(robot?.battery_percentage) }}>
+                  {getBatteryIcon(robot?.battery_percentage)}
                 </Box>
                 <Typography variant="body2" fontWeight="bold">
                   배터리
                 </Typography>
               </Box>
-              <Typography variant="h6" fontWeight="bold" sx={{ color: getBatteryColor(robot?.battery_level) }}>
-                {robot?.battery_level !== undefined ? `${robot.battery_level}%` : '-'}
+              <Typography variant="h6" fontWeight="bold" sx={{ color: getBatteryColor(robot?.battery_percentage) }}>
+                {robot?.battery_percentage !== undefined ? `${Math.round(robot.battery_percentage)}%` : '-'}
               </Typography>
             </Box>
-            {robot?.battery_level !== undefined && (
+            {robot?.battery_percentage !== undefined && (
               <LinearProgress
                 variant="determinate"
-                value={robot.battery_level}
+                value={robot.battery_percentage}
                 sx={{
                   height: 8,
                   borderRadius: 1,
                   backgroundColor: 'grey.200',
                   '& .MuiLinearProgress-bar': {
-                    backgroundColor: getBatteryColor(robot.battery_level),
+                    backgroundColor: getBatteryColor(robot.battery_percentage),
                   },
                 }}
               />
@@ -341,14 +349,14 @@ export default function RobotMonitor() {
           {/* 도킹 상태 */}
           <Box display="flex" alignItems="center" justifyContent="space-between">
             <Box display="flex" alignItems="center" gap={1}>
-              <PowerSettingsNew sx={{ color: robot?.status === 'charging' ? 'success.main' : 'text.secondary' }} />
+              <PowerSettingsNew sx={{ color: robot?.is_docked ? 'success.main' : 'text.secondary' }} />
               <Typography variant="body2" fontWeight="bold">
                 도킹 상태
               </Typography>
             </Box>
             <Chip
-              label={robot?.status === 'charging' ? '도킹됨' : '분리됨'}
-              color={robot?.status === 'charging' ? 'success' : 'default'}
+              label={robot?.is_docked ? '도킹됨' : '분리됨'}
+              color={robot?.is_docked ? 'success' : 'default'}
               size="small"
             />
           </Box>
@@ -447,10 +455,10 @@ export default function RobotMonitor() {
       {/* 로봇 상태 카드 */}
       <Grid container spacing={3} mb={4}>
         <Grid item xs={12} md={6}>
-          <RobotCard robotId="robot_01" robotName="Robot 1" task={robot1Task} />
+          <RobotCard robotName="robot1" displayName="Robot 1" task={robot1Task} />
         </Grid>
         <Grid item xs={12} md={6}>
-          <RobotCard robotId="robot_02" robotName="Robot 2" task={robot2Task} />
+          <RobotCard robotName="robot2" displayName="Robot 2" task={robot2Task} />
         </Grid>
       </Grid>
 
