@@ -49,8 +49,9 @@ export default function ParkingStatus() {
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpotDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  // YouTube 영상 URL (필요시 여기서 변경)
-  const youtubeUrl = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+  // Twitch 채널명과 도메인 설정 (OBS로 송출할 Twitch 채널명 입력)
+  const twitchChannel = 'YOUR_TWITCH_CHANNEL';  // 여기에 Twitch 채널명 입력
+  const twitchUrl = `https://player.twitch.tv/?channel=${twitchChannel}&parent=${window.location.hostname}&muted=false`;
 
   useEffect(() => {
     fetchParkingStatus();
@@ -216,10 +217,10 @@ export default function ParkingStatus() {
         실시간 주차 현황
       </Typography>
 
-      {/* YouTube 실시간 영상 */}
+      {/* Twitch 실시간 영상 (OBS 스트리밍) */}
       <Paper sx={{ p: 3, mb: 3 }}>
         <Typography variant="h6" gutterBottom>
-          실시간 주차장 영상
+          📹 실시간 주차장 영상 (Twitch Live)
         </Typography>
         <Box
           sx={{
@@ -228,14 +229,15 @@ export default function ParkingStatus() {
             height: 0,
             overflow: 'hidden',
             borderRadius: 2,
+            bgcolor: 'black',
           }}
         >
           <iframe
-            src={youtubeUrl}
+            src={twitchUrl}
             title="실시간 주차장 영상"
             frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            scrolling="no"
             style={{
               position: 'absolute',
               top: 0,
