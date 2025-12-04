@@ -153,6 +153,33 @@ export interface Task {
   completed_at?: string;
 }
 
+export interface Robot {
+  robot_id: string;
+  robot_name?: string;
+  robot_type?: string;
+  status: 'idle' | 'busy' | 'charging' | 'error' | 'offline';
+  battery_level?: number;
+  current_location?: string;
+  current_x?: number;
+  current_y?: number;
+  current_orientation?: number;
+  last_updated: string;
+  created_at: string;
+}
+
+export interface Notification {
+  notification_id: string;
+  notification_type: 'battery_low' | 'task_failed' | 'robot_error' | 'parking_full' | 'system';
+  severity: 'info' | 'warning' | 'error' | 'critical';
+  title: string;
+  message?: string;
+  related_task_id?: string;
+  related_robot_id?: string;
+  is_read: boolean;
+  read_at?: string;
+  created_at: string;
+}
+
 // Join 타입 (고객 + 차량 정보)
 export interface CustomerWithVehicles extends Customer {
   vehicles?: Vehicle[];
