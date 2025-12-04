@@ -11,7 +11,6 @@ import {
   Divider,
   Button,
   Chip,
-  Paper,
 } from '@mui/material';
 import {
   Notifications as NotificationsIcon,
