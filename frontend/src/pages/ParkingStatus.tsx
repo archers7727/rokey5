@@ -48,7 +48,9 @@ export default function ParkingStatus() {
   const [loading, setLoading] = useState(true);
   const [selectedSpot, setSelectedSpot] = useState<ParkingSpotDetail | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [youtubeUrl, setYoutubeUrl] = useState<string>('https://www.youtube.com/embed/dQw4w9WgXcQ'); // 기본 URL (변경 가능)
+
+  // YouTube 영상 URL (필요시 여기서 변경)
+  const youtubeUrl = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
 
   useEffect(() => {
     fetchParkingStatus();
